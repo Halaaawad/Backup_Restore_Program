@@ -1,0 +1,203 @@
+name: Autograding Tests
+
+"on":
+  - push
+  - repository_dispatch
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Disable initramfs update
+        run: sudo sed -i 's/yes/no/g' /etc/initramfs-tools/update-initramfs.conf
+      - name: Disable man-db update
+        run: sudo rm -f /var/lib/man-db/auto-update
+      
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y expect
+
+      - name: Set up Script Permissions
+        run: chmod +x ./**/*.sh
+
+      - name: Wrong Arguments Test
+        id: wrong-arguments-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Wrong Arguments Test
+          setup-command: |
+            chmod +x ./tests/wrong_arguments.sh
+          command: ./tests/wrong_arguments.sh
+          timeout: 10
+          max-score: 1
+        timeout-minutes: 1
+
+      - name: Invalid Interval Test
+        id: invalid-interval-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Invalid Interval Test
+          setup-command: |
+            chmod +x ./tests/invalid_interval.sh
+          command: ./tests/invalid_interval.sh
+          timeout: 10
+          max-score: 2
+        timeout-minutes: 1
+
+      - name: Invalid Max Backups Test
+        id: invalid-max-backups-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Invalid Max Backups Test
+          setup-command: |
+            chmod +x ./tests/invalid_max_backups.sh
+          command: ./tests/invalid_max_backups.sh
+          timeout: 10
+          max-score: 1
+        timeout-minutes: 1
+
+      - name: Non-existent Source Test
+        id: nonexistent-source-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Non-existent Source Test
+          setup-command: |
+            chmod +x ./tests/non_existent_source.sh
+          command: ./tests/non_existent_source.sh
+          timeout: 10
+          max-score: 1
+        timeout-minutes: 1
+
+      - name: Restore Args Test
+        id: restore-args-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Restore Args Test
+          setup-command: |
+            chmod +x ./tests/restore_args.sh
+          command: ./tests/restore_args.sh ./restore.sh
+          timeout: 10
+          max-score: 1
+        timeout-minutes: 1
+
+      # 2. Initial/creation tests
+      - name: Initial Backup Creation Test
+        id: initial-backup-creation-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Initial Backup Creation Test
+          setup-command: |
+            chmod +x ./tests/initial_backup_creation.sh
+          command: ./tests/initial_backup_creation.sh
+          timeout: 10
+          max-score: 2
+        timeout-minutes: 1
+
+      # 3. Backup/restore/limit tests
+      - name: Backup Directory Naming Format Test
+        id: backup-directory-naming-format-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Backup Directory Naming Format Test
+          setup-command: |
+            chmod +x ./tests/backup_directory_naming_format.sh
+          command: ./tests/backup_directory_naming_format.sh
+          timeout: 10
+          max-score: 2
+        timeout-minutes: 1
+
+      - name: Backup Content Verification Test
+        id: backup-content-verification-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Backup Content Verification Test
+          setup-command: |
+            chmod +x ./tests/backup_content_verification.sh
+          command: ./tests/backup_content_verification.sh
+          timeout: 10
+          max-score: 3
+        timeout-minutes: 1
+
+      - name: Change Detection and Automatic Backup Test
+        id: change-detection-and-automatic-backup-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Change Detection and Automatic Backup Test
+          setup-command: |
+            chmod +x ./tests/change_detection_and_automatic_backup.sh
+          command: ./tests/change_detection_and_automatic_backup.sh
+          timeout: 10
+          max-score: 3
+        timeout-minutes: 1
+
+      - name: Maximum Backups Limit Test
+        id: maximum-backups-limit-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Maximum Backups Limit Test
+          command: ./tests/maximum_backups_limit.sh
+          timeout: 10
+          max-score: 2
+        timeout-minutes: 1
+
+      - name: Restore Content Verification Test
+        id: restore-content-verification-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Restore Content Verification Test
+          setup-command: |
+            chmod +x ./tests/restore_content_verification.sh
+          command: ./tests/restore_content_verification.sh ./restore.sh
+          timeout: 10
+          max-score: 2
+        timeout-minutes: 1
+
+      # 4. Restore navigation/edge tests
+      - name: Restore Navigation Test
+        id: restore-navigation-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Restore Navigation Test
+          setup-command: |
+            chmod +x ./tests/restore_navigation.sh
+          command: ./tests/restore_navigation.sh ./restore.sh
+          timeout: 15
+          max-score: 2
+        timeout-minutes: 2
+
+      - name: Restore No Matching Test
+        id: restore-no-matching-test
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Restore No Matching Test
+          setup-command: |
+            chmod +x ./tests/restore_no_matching.sh
+          command: ./tests/restore_no_matching.sh ./restore.sh
+          timeout: 10
+          max-score: 1
+        timeout-minutes: 1
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          INVALID-INTERVAL-TEST_RESULTS: "${{steps.invalid-interval-test.outputs.result}}"
+          INVALID-MAX-BACKUPS-TEST_RESULTS: "${{steps.invalid-max-backups-test.outputs.result}}"
+          WRONG-ARGUMENTS-TEST_RESULTS: "${{steps.wrong-arguments-test.outputs.result}}"
+          NONEXISTENT-SOURCE-TEST_RESULTS: "${{steps.nonexistent-source-test.outputs.result}}"
+          INITIAL-BACKUP-CREATION-TEST_RESULTS: "${{steps.initial-backup-creation-test.outputs.result}}"
+          BACKUP-DIRECTORY-NAMING-FORMAT-TEST_RESULTS: "${{steps.backup-directory-naming-format-test.outputs.result}}"
+          BACKUP-CONTENT-VERIFICATION-TEST_RESULTS: "${{steps.backup-content-verification-test.outputs.result}}"
+          CHANGE-DETECTION-AND-AUTOMATIC-BACKUP-TEST_RESULTS: "${{steps.change-detection-and-automatic-backup-test.outputs.result}}"
+          MAXIMUM-BACKUPS-LIMIT-TEST_RESULTS: "${{steps.maximum-backups-limit-test.outputs.result}}"
+          RESTORE-NAVIGATION-TEST_RESULTS: "${{steps.restore-navigation-test.outputs.result}}"
+          RESTORE-NO-MATCHING-TEST_RESULTS: "${{steps.restore-no-matching-test.outputs.result}}"
+          RESTORE-ARGS-TEST_RESULTS: "${{steps.restore-args-test.outputs.result}}"
+        with:
+          runners: invalid-interval-test,invalid-max-backups-test,wrong-arguments-test,nonexistent-source-test,initial-backup-creation-test,backup-directory-naming-format-test,backup-content-verification-test,change-detection-and-automatic-backup-test,maximum-backups-limit-test,restore-navigation-test,restore-no-matching-test,restore-args-test
